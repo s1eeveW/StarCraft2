@@ -17,47 +17,39 @@ def remove_id(temp):
             name += i
     return name
 
-# 处理不对等的player id
-def id_reverse(num):
-    if(num == 0):
-        new_id = 1
-    elif(num == 1):
-        new_id = 2
-    return new_id
-
 # 将地图分为四个区域
 def location(x, y, height, width):
-    size = max(width, height)
-    size = math.ceil(size / 4)
-    if (x <= size and y <= size):
+    size_x = math.ceil(width / 4)
+    size_y = math.ceil(height / 4)
+    if (x <= size_x and y <= size_y):
         return str("11")
-    elif (size < x <= size * 2 and y <= size):
+    elif (size_x < x <= size_x * 2 and y <= size_y):
         return str("21")
-    elif (size * 2 < x <= size * 3 and y <= size):
+    elif (size_x * 2 < x <= size_x * 3 and y <= size_y):
         return str("31")
-    elif (size * 3 < x <= size * 4 and y <= size):
+    elif (size_x * 3 < x <= size_x * 4 and y <= size_y):
         return str("41")
-    elif (x <= size and size < y <= size * 2):
+    elif (x <= size_x and size_y < y <= size_y * 2):
         return str("12")
-    elif (size < x <= size * 2 and size < y <= size * 2):
+    elif (size_x < x <= size_x * 2 and size_y < y <= size_y * 2):
         return str("22")
-    elif (size * 2 < x <= size * 3 and size < y <= size * 2):
+    elif (size_x * 2 < x <= size_x * 3 and size_y < y <= size_y * 2):
         return str("32")
-    elif (size * 3 < x <= size * 4 and size < y <= size * 2):
+    elif (size_x * 3 < x <= size_x * 4 and size_y < y <= size_y * 2):
         return str("42")
-    elif (x <= size and size * 2 < y <= size * 3):
+    elif (x <= size_x and size_y * 2 < y <= size_y * 3):
         return str("13")
-    elif (size < x <= size * 2 and size * 2 < y <= size * 3):
+    elif (size_x < x <= size_x * 2 and size_y * 2 < y <= size_y * 3):
         return str("23")
-    elif (size * 2 < x <= size * 3 and size * 2 < y <= size * 3):
+    elif (size_x * 2 < x <= size_x * 3 and size_y * 2 < y <= size_y * 3):
         return str("33")
-    elif (size * 3 < x <= size * 4 and size * 2 < y <= size * 3):
+    elif (size_x * 3 < x <= size_x * 4 and size_y * 2 < y <= size_y * 3):
         return str("43")
-    elif (x <= size and size * 3 < y <= size * 4):
+    elif (x <= size_x and size_y * 3 < y <= size_y * 4):
         return str("14")
-    elif (size < x <= size *2 and size * 3 < y <= size * 4):
+    elif (size_x < x <= size_x *2 and size_y * 3 < y <= size_y * 4):
         return str("24")
-    elif (size * 2 < x <= size * 3 and size * 3 < y <= size * 4):
+    elif (size_x * 2 < x <= size_x * 3 and size_y * 3 < y <= size_y * 4):
         return str("34")
     else:
         return str("44")
@@ -98,7 +90,7 @@ def stage(time, secs):
         return 3
 
 # 放入replay名字
-for pa in range(56004, 73830):
+for pa in range(57307, 73830):
     path = 'D:/SC2/SC/' + str(pa) + '.SC2Replay'
     deter = False
     while(deter == False):
@@ -111,8 +103,12 @@ for pa in range(56004, 73830):
 
     # 导入replay
     sc2reader.configure(debug=True)
-    replay = sc2reader.load_replay(path, load_level=4)
-    replay.load_map()
+    replay = None
+    try:
+        replay = sc2reader.load_replay(path, load_level=4)
+        replay.load_map()
+    except:
+        continue
 
     # 一些比赛的信息。
     # print(replay.start_time)
@@ -130,7 +126,8 @@ for pa in range(56004, 73830):
     secs = seconds(replay.real_length)
 
     out_string = []
-    list = []
+    list1 = []
+    list2 = []
     Search = dict()
     for event in replay.events:
        #  将所有生成单位存入字典（死亡事件需要进行比较）
@@ -140,95 +137,135 @@ for pa in range(56004, 73830):
        #  除去地图加载生成的事件信息
        if (event.second > 0):
            # 将选中的部队存入一个列表（根据选中的部队进行“进攻”单位的判断）
-           if((event.name == "SelectionEvent") and ((event.pid == 1) or (event.pid == 0))):
-               if(len(event.new_units)):
-                   list = []
-                   for num in event.new_units:
-                       list.append(num)
+           if (event.name == "SelectionEvent") and (event.player != None):
+               if (event.player.sid == 0) or (event.player.sid == 1):
+                   if len(event.new_units):
+                       if event.player.sid == 0:
+                           list1.clear()
+                           for num in event.new_units:
+                               list1.append(num)
+                       elif event.player.sid == 1:
+                           list2.clear()
+                           for num in event.new_units:
+                               list2.append(num)
 
-           if ((event.name == "TargetUnitCommandEvent") and ((event.pid == 1) or (event.pid == 0))):
+           if event.name == "TargetUnitCommandEvent":
+               if (event.ability_name == "UnloadTargetWarpPrism") or (event.ability_name == "UnloadTargetMedivac") or (event.ability_name == "UnloadTargetOverlord"):
+                   time = stage(event.second, secs)
+                   area = location(event.x, event.y, height, width)
+                   string = "Player " + str(event.player.sid + 1) + " " + event.target.name + " is Unloading at area " + str(area) + " in stage " + str(time)
+                   # print(string)
                # 输出进攻事件（右键攻击也包括在内）
-               id_number = id_reverse(event.pid)
-               if ((event.ability_name == "Attack") or (event.ability_name == "RightClick")):
-                   if ((event.control_player_id > 0) and (int(id_number) != int(event.control_player_id)) and (event.target_unit_id != 0)):
-                       #  每一个单位的进攻事件输出
-                       for temp in list:
+               # if (event.ability_name == "Attack") or (event.ability_name == "RightClick"):
+               #     if (event.target.race != "None") and (event.target.race != "Neutral"):
+               #         # 去除迷雾中的未知单位和去除相同阵营击杀
+               #         if (event.player.sid != int(event.control_player_id)) and (event.target_unit_id != 0):
+               #             if event.player.sid == 0:
+               #                 #  每一个单位的进攻事件输出
+               #                 for temp in list1:
+               #                     time = stage(event.second, secs)
+               #                     area = location(event.x, event.y, height, width)
+               #                     string = "Player " + str(event.player.sid+1) + " " + remove_id(temp) + " is Attacking Player " + str(event.control_player_id) + " " + remove_id(event.target) + " at area " + str(area) + " in stage " + str(time)
+               #                     # out_string.append(string)
+               #                     # print(string)
+               #             elif event.player.sid == 1:
+               #                 for temp in list2:
+               #                     time = stage(event.second, secs)
+               #                     area = location(event.x, event.y, height, width)
+               #                     string = "Player " + str(event.player.sid+1) + " " + remove_id(temp) + " is Attacking Player " + str(event.control_player_id) + " " + remove_id(event.target) + " at area " + str(area) + " in stage " + str(time)
+               #                     # out_string.append(string)
+               #                     # print(string)
+
+            # 输出移动事件
+           if (event.name == "TargetPointCommandEvent") and (event.player != None):
+               if event.player.sid == 0:
+                   for temp in list1:
+                       if temp.is_army == True:
                            time = stage(event.second, secs)
                            area = location(event.x, event.y, height, width)
-                           string = "Player " + str(id_number) + " " + remove_id(temp) + " is Attacking Player " + str(event.control_player_id) + " " + remove_id(event.target) + " at area " + str(area) + " in stage " + str(time)
+                           string = "Player " + str(event.player.sid+1) + " " + remove_id(temp) + " Moves to area " + str(area) + " in stage " + str(time)
                            out_string.append(string)
-                           print(string)
+                           # print(string)
 
-                # 输出移动事件
-               if (event.ability_name == "RightClick"):
-                   id_number = id_reverse(event.pid)
-                   for temp in list:
-                       # if (Lab(temp) == False):
-                       time = stage(event.second, secs)
-                       area = location(event.x, event.y, height, width)
-                       string = "Player " + str(id_number) + " " + remove_id(temp) + " Moves to area " + str(area) + " in stage " + str(time)
-                       out_string.append(string)
-                       print(string)
+               elif event.player.sid == 1:
+                   for temp in list2:
+                       if temp.is_army == True:
+                           time = stage(event.second, secs)
+                           area = location(event.x, event.y, height, width)
+                           string = "Player " + str(event.player.sid+1) + " " + remove_id(temp) + " Moves to area " + str(area) + " in stage " + str(time)
+                           out_string.append(string)
+                           # print(string)
 
-           #  # 输出创建建筑事件
-           # if (event.name == "UnitInitEvent"):
-           #     secs = seconds(replay.real_length)
-           #     area = location(event.x, event.y, height, width)
-           #     time = stage(event.second, secs)
-           #     string = "Player " + str(event.control_pid) + " Build a " + remove_id(event.unit_type_name) + " at area " + str(area) + " in stage " + str(time)
-           #     out_string.append(string)
-           #     print(string)
-           #
-           # # 输出创建单位事件
-           # if (event.name == "UnitBornEvent"):
-           #     secs = seconds(replay.real_length)
-           #     area = location(event.x, event.y, height, width)
-           #     time = stage(event.second, secs)
-           #     string = "Player " + str(event.control_pid) + " Generate a " + remove_id(event.unit_type_name) + " at area " + str(area) + " in stage " + str(time)
-           #     out_string.append(string)
-           #     print(string)
-           #
-           # # 输出死亡事件
-           # if ((event.name == "UnitDiedEvent") and ((event.killing_player_id  == 1) or (event.killing_player_id  == 2))):
-           #     for temp in list:
-           #         if (temp == event.unit):
-           #             list.remove(temp)
-           #     # 过滤掉中立单位
-           #     if (event.unit.race != "Neutral") and (event.unit.race != "None") and (event.unit.owner != "None"):
-           #         if(event.killing_player_id != Search[event.unit_id]):
-           #             if (event.unit.is_building == True):
-           #                 if (event.killing_player_id == 1):
-           #                     secs = seconds(replay.real_length)
-           #                     area = location(event.x, event.y, height, width)
-           #                     time = stage(event.second, secs)
-           #                     string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Destroyed" + " Player 2 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
-           #                     out_string.append(string)
-           #                     # print(string)
-           #
-           #                 elif (event.killing_player_id == 2):
-           #                     secs = seconds(replay.real_length)
-           #                     area = location(event.x, event.y, height, width)
-           #                     time = stage(event.second, secs)
-           #                     string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Destroyed" + " Player 1 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
-           #                     out_string.append(string)
-           #                     # print(string)
-           #
-           #             else:
-           #                 if (event.killing_player_id == 1):
-           #                     secs = seconds(replay.real_length)
-           #                     area = location(event.x, event.y, height, width)
-           #                     time = stage(event.second, secs)
-           #                     string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Killed" + " Player 2 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
-           #                     out_string.append(string)
-           #                     # print(string)
-           #
-           #                 elif (event.killing_player_id == 2):
-           #                     secs = seconds(replay.real_length)
-           #                     area = location(event.x, event.y, height, width)
-           #                     time = stage(event.second, secs)
-           #                     string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Killed" + " Player 1 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
-           #                     out_string.append(string)
-           #                     # print(string)
+            # 输出创建建筑事件
+           if (event.name == "UnitInitEvent"):
+               if (event.unit.race != "None") and (event.unit.race != "Neutral") and (event.unit.is_building == True):
+                   secs = seconds(replay.real_length)
+                   area = location(event.x, event.y, height, width)
+                   time = stage(event.second, secs)
+                   string = "Player " + str(event.control_pid) + " Build a " + remove_id(event.unit_type_name) + " at area " + str(area) + " in stage " + str(time)
+                   out_string.append(string)
+                   # print(string)
+
+           # 输出创建单位事件
+           if (event.name == "UnitBornEvent"):
+               if (event.unit.race != "None") and (event.unit.race != "Neutral") and (event.unit.is_army == True):
+                   secs = seconds(replay.real_length)
+                   area = location(event.x, event.y, height, width)
+                   time = stage(event.second, secs)
+                   string = "Player " + str(event.control_pid) + " Generate a " + remove_id(event.unit_type_name) + " at area " + str(area) + " in stage " + str(time)
+                   out_string.append(string)
+                   # print(string)
+
+           # 输出死亡事件
+           if ((event.name == "UnitDiedEvent") and ((event.killing_player_id  == 1) or (event.killing_player_id  == 2))):
+               if event.killing_player_id == 1:
+                   for temp in list2:
+                       if (temp == event.unit):
+                           list2.remove(temp)
+
+               elif event.killing_player_id == 2:
+                   for temp in list1:
+                       if (temp == event.unit):
+                           list1.remove(temp)
+
+               # 过滤掉中立单位
+               if (event.unit.race != "Neutral") and (event.unit.race != "None") and (event.unit.owner != "None"):
+                   if(event.killing_player_id != Search[event.unit_id]):
+                       if (event.unit.is_building == True):
+                           if remove_id(event.killing_unit) != "None":
+                               if (event.killing_player_id == 1):
+                                   secs = seconds(replay.real_length)
+                                   area = location(event.x, event.y, height, width)
+                                   time = stage(event.second, secs)
+                                   string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Destroyed" + " Player 2 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
+                                   out_string.append(string)
+                                   # print(string)
+
+                               elif (event.killing_player_id == 2):
+                                   secs = seconds(replay.real_length)
+                                   area = location(event.x, event.y, height, width)
+                                   time = stage(event.second, secs)
+                                   string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Destroyed" + " Player 1 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
+                                   out_string.append(string)
+                                   # print(string)
+
+                       else:
+                           if remove_id(event.killing_unit) != "None":
+                               if (event.killing_player_id == 1):
+                                   secs = seconds(replay.real_length)
+                                   area = location(event.x, event.y, height, width)
+                                   time = stage(event.second, secs)
+                                   string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Killed" + " Player 2 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
+                                   out_string.append(string)
+                                   # print(string)
+
+                               elif (event.killing_player_id == 2):
+                                   secs = seconds(replay.real_length)
+                                   area = location(event.x, event.y, height, width)
+                                   time = stage(event.second, secs)
+                                   string = "Player " + str(event.killing_player_id) + " " + remove_id(event.killing_unit) + " Killed" + " Player 1 " + remove_id(event.unit) + " at area " + str(area) + " in stage " + str(time)
+                                   out_string.append(string)
+                                   # print(string)
 
     write = 'D:/SC2/SCIII/' + str(pa) + '.csv'
     f = open(write, 'w', encoding='utf-8')
