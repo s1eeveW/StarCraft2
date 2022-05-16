@@ -89,8 +89,8 @@ def stage(time, secs):
     else:
         return 3
 
-# 放入replay名字
-for pa in range(57307, 73830):
+# 放入replay名字(56003:73829)
+for pa in range(68513, 73830):
     path = 'D:/SC2/SC/' + str(pa) + '.SC2Replay'
     deter = False
     while(deter == False):
@@ -119,7 +119,7 @@ for pa in range(57307, 73830):
     # print(replay.real_type)
     # print(replay.real_length)
     # print(replay.player)
-
+    print(replay.player)
     # 提取到地图的长宽数值
     height = replay.map.map_info.height
     width = replay.map.map_info.width
@@ -154,7 +154,8 @@ for pa in range(57307, 73830):
                    time = stage(event.second, secs)
                    area = location(event.x, event.y, height, width)
                    string = "Player " + str(event.player.sid + 1) + " " + event.target.name + " is Unloading at area " + str(area) + " in stage " + str(time)
-                   # print(string)
+                   out_string.append(string)
+                   print(string)
                # 输出进攻事件（右键攻击也包括在内）
                # if (event.ability_name == "Attack") or (event.ability_name == "RightClick"):
                #     if (event.target.race != "None") and (event.target.race != "Neutral"):
